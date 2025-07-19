@@ -1,0 +1,17 @@
+source 'https://rubygems.org'
+
+ruby '3.3.8'
+
+# Core CVE scanning
+gem 'bundler-audit', '~> 0.9'
+gem 'json', '~> 2.6'
+
+# For gem dependency analysis
+gem 'parser', '~> 3.2'
+gem 'gems', '~> 1.2'
+
+# Development
+group :development, :test do
+  gem 'rspec', '~> 3.12'
+  gem 'rubocop', '~> 1.50'
+end
