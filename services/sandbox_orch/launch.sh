@@ -144,7 +144,9 @@ EOF
 chmod +x "$SANDBOX_DIR/teardown.sh"
 
 # Generate demo app files
-mkdir -p "$SANDBOX_DIR/demo_app"
+mkdir -p "$SANDBOX_DIR/demo_app/app/controllers"
+mkdir -p "$SANDBOX_DIR/demo_app/app/views/welcome"
+mkdir -p "$SANDBOX_DIR/demo_app/app/views/layouts"
 
 # Create a simple welcome controller
 cat > "$SANDBOX_DIR/demo_app/app/controllers/welcome_controller.rb" << EOF
