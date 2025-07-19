@@ -1,0 +1,27 @@
+# Requirements for GemHub LLM Gateway Service - Lane D
+# FastAPI service with OpenAI integration and rate limiting
+
+# FastAPI and async server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# OpenAI API client (1.x series as specified)
+openai==1.6.1
+
+# Rate limiting
+slowapi==0.1.9
+limits==3.6.0
+
+# Data validation and serialization
+pydantic==2.5.0
+
+# HTTP client for async requests
+httpx==0.25.2
+
+# Python standard library extensions
+python-multipart==0.0.6
+
+# Development dependencies (optional)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-mock==3.12.0 

@@ -1,0 +1,22 @@
+# Requirements for GemHub Vector Store Service - Lane D
+# FAISS-based semantic search with sentence transformers
+
+# FAISS for vector similarity search
+faiss-cpu==1.7.4
+
+# Sentence transformers for embeddings
+sentence-transformers==2.2.2
+
+# Core ML dependencies
+numpy==1.24.3
+scikit-learn==1.3.2
+
+# Text processing
+nltk==3.8.1
+
+# OpenAI for potential fallback
+openai==1.6.1
+
+# Development dependencies
+pytest==7.4.3
+pytest-asyncio==0.21.1 
