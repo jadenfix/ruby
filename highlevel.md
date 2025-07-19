@@ -29,7 +29,7 @@ Scanner │   ┌─────┴──────────┐            
 (Ruby)  │   │  Vector Store  │◄──────────────────┘
         │   │ (Python + FAISS│   ┌──────────────────────────┐
 ┌───────┴─┐ │  + sqlite)     │   │ LLM Gateway (FastAPI)    │
-│Mutant/   │ └───────▲────────┘   │ • Talks to OpenAI/LLM    │
+│Mutant/   │ └───────▲────────┘   │ • Talks to Claude/LLM    │
 │Bench/IPS │         │            │ • Thin auth + rate-limit │
 │Runners    │  ANN search          └──────────────────────────┘
 └───────────┘
@@ -59,7 +59,7 @@ Phase	Hrs	Deliverable	Key Tasks & Libs
 2. Wizard & CLI	2	gemhub-wizard (React flow) + gemhub Thor CLI	Prompt name/license, call existing GemCrafter commands.
 3. Sandbox Launch	2	One-click Docker sandbox	Bash script generates docker-compose.sandbox.yml, mounts gem, boots Rails demo.
 4. Bench + CVE Scan	3	Benchmark & Security tabs	Run benchmark-ips vs. competitors; fetch RubySec JSON; display charts via D3.
-5. LLM Integrations	2	GPT-powered Rank + Roadmap	FastAPI wrapper; openai==1.x; call for “Top trending” & feature suggestions.
+5. LLM Integrations	2	Claude-powered Rank + Roadmap	FastAPI wrapper; anthropic client; call for “Top trending” & feature suggestions.
 6. Polish & Gamify	1	Badges, leaderboard mock data	Compute badges in API; render trophy icons in sidebar.
 7. Demo Script	1	60-s flow: wizard ▸ sandbox ▸ benchmark ▸ publish	Record GIF, prep pitch.
 
@@ -112,7 +112,7 @@ Compatibility Checklist ✔︎
 Layer	Language	Container?	Notes
 VS Code ext	TS/React	n/a	Uses Continue.dev APIs only.
 API & CLI	Ruby 3.3	yes	Same gemset, avoids native ext gems.
-AI & Embeddings	Python 3.11	yes	faiss-cpu, openai.
+AI & Embeddings	Python 3.11	yes	faiss-cpu, anthropic.
 Front visuals	React + D3.js	n/a	Bundled by esbuild.
 Orchestration	Docker Compose v2	yes	Works Mac/Windows/Linux.
 

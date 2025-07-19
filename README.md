@@ -22,7 +22,7 @@ GemHub is built as a microservices architecture with the following components:
 - **CVE Scanner**: Security vulnerability detection via RubySec
 
 ### Lane D - AI Layer & Observability ⭐ (Current Focus)
-- **LLM Gateway**: FastAPI service with OpenAI integration
+- **LLM Gateway**: FastAPI service with Anthropic Claude integration
 - **Vector Store**: FAISS-based semantic search for gem discovery
 - **Metrics Dashboard**: D3.js visualizations of performance data
 
@@ -37,7 +37,7 @@ FastAPI service providing AI-powered gem ranking and suggestions:
 - **`/health`**: Service health monitoring
 
 **Features:**
-- OpenAI GPT-4o-mini integration
+- Anthropic Claude 3 Haiku integration
 - Rate limiting via SlowAPI
 - Async processing for performance
 - Fallback responses when AI unavailable
@@ -62,7 +62,7 @@ FAISS-based semantic search engine:
 ### Prerequisites
 
 - Docker & Docker Compose
-- OpenAI API key (for AI features)
+- Anthropic API key (for AI features)
 - Git
 
 ### Setup
@@ -76,7 +76,7 @@ FAISS-based semantic search engine:
 2. **Configure Environment**
    ```bash
    cp .env.example .env
-   # Edit .env with your OpenAI API key
+   # Edit .env with your Anthropic API key
    ```
 
 3. **Start Development Environment**
@@ -217,8 +217,8 @@ Create `.env` file with the following variables:
 
 ```bash
 # Required for Lane D AI features
-OPENAI_API_KEY=your_openai_api_key_here
-MODEL=gpt-4o-mini
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+MODEL=claude-3-haiku-20240307
 
 # API security
 API_TOKEN=dev-token-123
@@ -237,7 +237,7 @@ PYTHONPATH=/app
 gemhub/
 ├── services/
 │   ├── api/                 # Lane B - Sinatra API
-│   ├── llm_gateway/         # Lane D - FastAPI + OpenAI ⭐
+│   ├── llm_gateway/         # Lane D - FastAPI + Anthropic ⭐
 │   ├── vector_store/        # Lane D - FAISS search ⭐
 │   ├── sandbox_orch/        # Lane C - Docker orchestration
 │   └── cve_scanner/         # Lane C - Security scanning
@@ -256,9 +256,9 @@ gemhub/
 - [x] Docker Compose integration - llm_gateway & vector_store services
 - [x] Makefile target `make embed` to refresh FAISS ⭐
 - [ ] Charts render in sidebar with real data (pending Lane A integration)
-- [ ] Gateway unit tests mock OpenAI and fully pass
+- [ ] Gateway unit tests mock Anthropic and fully pass
 - [x] Rate limiting via SlowAPI implemented
-- [x] OpenAI 1.x client integration
+- [x] Anthropic Claude client integration
 
 ## Contributing
 

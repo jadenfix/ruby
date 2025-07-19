@@ -14,8 +14,8 @@ scikit-learn==1.3.2
 # Text processing
 nltk==3.8.1
 
-# OpenAI for potential fallback
-openai==1.6.1
+# Anthropic for potential fallback
+anthropic==0.8.1
 
 # Development dependencies
 pytest==7.4.3

@@ -1,7 +1,7 @@
 """
 GemHub LLM Gateway Service - Lane D
 FastAPI service providing AI-powered gem ranking and suggestions.
-Integrates with OpenAI API and provides rate-limited endpoints.
+Integrates with Anthropic Claude API and provides rate-limited endpoints.
 """
 
 import os
@@ -10,11 +10,12 @@ from typing import List, Dict, Any, Optional
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
+import json
 
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-import openai
+import anthropic
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -27,12 +28,12 @@ logger = logging.getLogger(__name__)
 # Rate limiter setup
 limiter = Limiter(key_func=get_remote_address)
 
-# OpenAI configuration
-openai.api_key = os.getenv("OPENAI_API_KEY")
-MODEL = os.getenv("MODEL", "gpt-4o-mini")
+# Anthropic configuration
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+MODEL = os.getenv("MODEL", "claude-3-haiku-20240307")
 
-if not openai.api_key:
-    logger.warning("OPENAI_API_KEY not set. Using mock responses.")
+if not ANTHROPIC_API_KEY:
+    logger.warning("ANTHROPIC_API_KEY not set. Using mock responses.")
 
 # Request/Response models
 class GemInfo(BaseModel):
@@ -48,24 +49,23 @@ class RankRequest(BaseModel):
     """Request for ranking gems by relevance."""
     query: str = Field(..., description="Search query for ranking gems")
     gems: List[GemInfo] = Field(..., description="List of gems to rank")
-    max_results: int = Field(default=10, ge=1, le=50)
 
 class RankResponse(BaseModel):
-    """Response containing ranked gem IDs."""
-    gem_names: List[str] = Field(..., description="Gem names ordered by relevance")
-    scores: List[float] = Field(..., description="Relevance scores (0-1)")
-    reasoning: Optional[str] = None
+    """Response with ranked gems."""
+    ranked_gems: List[str] = Field(..., description="Gem names ranked by relevance")
+    reasoning: Optional[str] = Field(None, description="AI reasoning for ranking")
+    confidence: float = Field(..., description="Confidence score 0-1")
 
 class SuggestRequest(BaseModel):
-    """Request for AI-powered gem suggestions."""
-    context: str = Field(..., description="Context for suggestions (project type, use case, etc.)")
-    current_gems: List[str] = Field(default_factory=list, description="Currently used gems")
-    max_suggestions: int = Field(default=5, ge=1, le=10)
+    """Request for gem suggestions."""
+    query: str = Field(..., description="Description of what user wants to achieve")
+    context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Additional context")
 
 class SuggestResponse(BaseModel):
-    """Response containing gem suggestions."""
-    suggestions: List[Dict[str, Any]] = Field(..., description="Suggested gems with metadata")
-    reasoning: str = Field(..., description="AI reasoning for suggestions")
+    """Response with gem suggestions."""
+    suggestions: List[GemInfo] = Field(..., description="Suggested gems")
+    reasoning: Optional[str] = Field(None, description="AI reasoning for suggestions")
+    confidence: float = Field(..., description="Confidence score 0-1")
 
 class HealthResponse(BaseModel):
     """Health check response."""
@@ -75,29 +75,28 @@ class HealthResponse(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan management."""
+    """Application lifespan events."""
     logger.info("Starting GemHub LLM Gateway...")
-    # Startup
-    try:
-        if openai.api_key:
-            # Test OpenAI connection
-            client = openai.OpenAI()
-            await asyncio.to_thread(
-                client.chat.completions.create,
+    
+    # Test Anthropic connection if key is available
+    if ANTHROPIC_API_KEY:
+        try:
+            # Test Anthropic connection
+            client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+            response = client.messages.create(
                 model=MODEL,
-                messages=[{"role": "user", "content": "test"}],
-                max_tokens=1
+                max_tokens=10,
+                messages=[{"role": "user", "content": "Hello"}]
             )
-            logger.info("OpenAI connection verified")
-    except Exception as e:
-        logger.warning(f"OpenAI connection test failed: {e}")
+            logger.info("Anthropic connection verified")
+        except Exception as e:
+            logger.warning(f"Anthropic connection test failed: {e}")
     
     yield
     
-    # Shutdown
     logger.info("Shutting down GemHub LLM Gateway...")
 
-# FastAPI app setup
+# Create FastAPI app
 app = FastAPI(
     title="GemHub LLM Gateway",
     description="AI-powered gem ranking and suggestion service",
@@ -105,25 +104,25 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Add rate limiting middleware
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-app.add_middleware(SlowAPIMiddleware)
-
-# CORS middleware
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-async def get_openai_client():
-    """Get OpenAI client instance."""
-    if not openai.api_key:
-        raise HTTPException(status_code=503, detail="OpenAI API key not configured")
-    return openai.OpenAI()
+# Add rate limiting middleware
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+async def get_anthropic_client():
+    """Get Anthropic client instance."""
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=503, detail="Anthropic API key not configured")
+    return anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
@@ -131,221 +130,237 @@ async def health_check():
     return HealthResponse(
         status="healthy",
         model=MODEL,
-        api_key_configured=bool(openai.api_key)
+        api_key_configured=bool(ANTHROPIC_API_KEY)
     )
 
 @app.post("/rank", response_model=RankResponse)
-@limiter.limit("10/minute")
-async def rank_gems(request: RankRequest, req: Request, client: openai.OpenAI = Depends(get_openai_client)):
+@limiter.limit("30/minute")
+async def rank_gems(request: RankRequest, req: Request, client: anthropic.Anthropic = Depends(get_anthropic_client)):
     """
-    Rank gems by relevance to a search query using LLM.
+    Rank gems by relevance to query.
     
-    Uses OpenAI to analyze gem descriptions and rank them by relevance
-    to the user's query, considering factors like functionality, popularity,
-    and maintenance status.
+    Uses Claude to analyze gem descriptions and rank them by relevance
+    to the user's search query.
     """
     try:
-        logger.info(f"Ranking {len(request.gems)} gems for query: '{request.query}'")
+        logger.info(f"Ranking {len(request.gems)} gems for query: {request.query}")
         
-        # Prepare gems data for LLM
-        gems_text = []
-        for i, gem in enumerate(request.gems):
-            gem_desc = f"""
-Gem {i}: {gem.name}
-Description: {gem.description or 'No description'}
-Keywords: {', '.join(gem.keywords) if gem.keywords else 'None'}
-Downloads: {gem.download_count or 'Unknown'}
-Stars: {gem.stars or 'Unknown'}
-Last Updated: {gem.last_updated or 'Unknown'}
-"""
-            gems_text.append(gem_desc.strip())
+        # Prepare gem data for Claude
+        gem_data = []
+        for gem in request.gems:
+            gem_info = {
+                "name": gem.name,
+                "description": gem.description or "No description",
+                "keywords": gem.keywords,
+                "downloads": gem.download_count or 0,
+                "stars": gem.stars or 0
+            }
+            gem_data.append(gem_info)
         
-        prompt = f"""
-You are a Ruby gem expert. Rank the following gems by relevance to this query: "{request.query}"
-
-Consider:
-1. Functional relevance to the query
-2. Popularity and community adoption
-3. Maintenance status and recency
-4. Code quality indicators
+        # Create prompt for Claude
+        prompt = f"""Please rank the following Ruby gems by relevance to this query: "{request.query}"
 
 Gems to rank:
-{chr(10).join(gems_text)}
+{json.dumps(gem_data, indent=2)}
 
 Respond with a JSON object containing:
-- "rankings": array of gem indices (0-based) in order of relevance (most relevant first)
-- "scores": array of relevance scores (0.0-1.0) corresponding to each ranking
-- "reasoning": brief explanation of ranking decisions
+1. "ranked_gems": array of gem names in order of relevance (most relevant first)
+2. "reasoning": brief explanation of your ranking
+3. "confidence": score from 0.0 to 1.0
 
-Only include gems in your ranking, no additional text.
-"""
+Focus on how well each gem matches the query based on name, description, keywords, and popularity."""
 
-        # Call OpenAI API
-        response = await asyncio.to_thread(
-            client.chat.completions.create,
-            model=MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=1000,
-            temperature=0.3
-        )
-        
-        # Parse response
-        import json
+        # Call Claude API
         try:
-            result = json.loads(response.choices[0].message.content)
-            rankings = result.get("rankings", [])
-            scores = result.get("scores", [])
-            reasoning = result.get("reasoning", "")
-            
-            # Convert indices to gem names and ensure valid scores
-            ranked_names = []
-            valid_scores = []
-            
-            for i, idx in enumerate(rankings[:request.max_results]):
-                if 0 <= idx < len(request.gems):
-                    ranked_names.append(request.gems[idx].name)
-                    valid_scores.append(scores[i] if i < len(scores) else 0.5)
-            
-            return RankResponse(
-                gem_names=ranked_names,
-                scores=valid_scores,
-                reasoning=reasoning
+            response = client.messages.create(
+                model=MODEL,
+                max_tokens=1000,
+                messages=[{"role": "user", "content": prompt}]
             )
             
-        except json.JSONDecodeError:
-            # Fallback: simple ranking by stars/downloads
-            logger.warning("Failed to parse LLM response, using fallback ranking")
-            ranked_gems = sorted(
-                enumerate(request.gems),
-                key=lambda x: (x[1].stars or 0) + (x[1].download_count or 0) / 1000,
-                reverse=True
-            )
+            # Parse Claude response
+            response_text = response.content[0].text
+            logger.info(f"Claude response length: {len(response_text)}")
             
+            # Try to extract JSON from response
+            try:
+                # Claude might wrap JSON in markdown code blocks
+                if "```json" in response_text:
+                    start = response_text.find("```json") + 7
+                    end = response_text.find("```", start)
+                    response_text = response_text[start:end].strip()
+                elif "```" in response_text:
+                    start = response_text.find("```") + 3
+                    end = response_text.find("```", start)
+                    response_text = response_text[start:end].strip()
+                
+                result = json.loads(response_text)
+                
+                # Validate response structure
+                if "ranked_gems" not in result:
+                    raise ValueError("Missing 'ranked_gems' in response")
+                
+                return RankResponse(
+                    ranked_gems=result.get("ranked_gems", []),
+                    reasoning=result.get("reasoning", "No reasoning provided"),
+                    confidence=min(1.0, max(0.0, float(result.get("confidence", 0.8))))
+                )
+                
+            except (json.JSONDecodeError, ValueError, KeyError) as e:
+                logger.warning(f"Failed to parse Claude response as JSON: {e}")
+                # Fallback: simple alphabetical ranking
+                fallback_ranking = [gem.name for gem in sorted(request.gems, key=lambda x: x.name)]
+                return RankResponse(
+                    ranked_gems=fallback_ranking,
+                    reasoning=f"Fallback ranking due to parsing error: {e}",
+                    confidence=0.3
+                )
+                
+        except anthropic.APIError as e:
+            logger.error(f"Claude API error: {e}")
+            # Fallback ranking by download count and stars
+            fallback_ranking = [
+                gem.name for gem in sorted(
+                    request.gems, 
+                    key=lambda x: (x.download_count or 0) + (x.stars or 0) * 1000,
+                    reverse=True
+                )
+            ]
             return RankResponse(
-                gem_names=[gem.name for _, gem in ranked_gems[:request.max_results]],
-                scores=[0.5] * min(len(ranked_gems), request.max_results),
-                reasoning="Fallback ranking by popularity metrics"
+                ranked_gems=fallback_ranking,
+                reasoning="Fallback ranking by popularity due to API error",
+                confidence=0.5
             )
             
     except Exception as e:
-        logger.error(f"Error ranking gems: {e}")
-        raise HTTPException(status_code=500, detail=f"Ranking failed: {str(e)}")
+        logger.error(f"Unexpected error in rank_gems: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.post("/suggest", response_model=SuggestResponse)
-@limiter.limit("5/minute")
-async def suggest_gems(request: SuggestRequest, req: Request, client: openai.OpenAI = Depends(get_openai_client)):
+@limiter.limit("20/minute")
+async def suggest_gems(request: SuggestRequest, req: Request, client: anthropic.Anthropic = Depends(get_anthropic_client)):
     """
-    Get AI-powered gem suggestions based on project context.
+    Suggest gems based on user requirements.
     
-    Analyzes project context and currently used gems to suggest
-    complementary or alternative gems that would benefit the project.
+    Uses Claude to recommend Ruby gems that would help achieve
+    the user's stated goal.
     """
     try:
-        logger.info(f"Generating suggestions for context: '{request.context[:100]}...'")
+        logger.info(f"Generating suggestions for: {request.query}")
         
-        current_gems_text = ", ".join(request.current_gems) if request.current_gems else "None"
-        
-        prompt = f"""
-You are a Ruby gem expert helping developers find the best gems for their projects.
+        # Create prompt for Claude
+        prompt = f"""The user wants to: "{request.query}"
 
-Project Context: {request.context}
-Currently Used Gems: {current_gems_text}
+Additional context: {json.dumps(request.context)}
 
-Suggest {request.max_suggestions} Ruby gems that would be valuable for this project.
+Please suggest relevant Ruby gems that would help accomplish this goal. Respond with a JSON object containing:
 
-Consider:
-1. Gems that complement existing ones
-2. Popular, well-maintained alternatives to current gems
-3. Essential gems for the project type that might be missing
-4. Performance and security improvements
+1. "suggestions": array of gem objects with these fields:
+   - "name": gem name
+   - "description": brief description of what it does
+   - "keywords": array of relevant keywords
+   - "download_count": estimated popularity (number)
+   - "stars": estimated GitHub stars (number)
 
-For each suggestion, provide:
-- name: gem name
-- reason: why it's beneficial for this project
-- category: type of functionality (e.g., "testing", "authentication", "performance")
-- priority: "high", "medium", or "low"
+2. "reasoning": explanation of why these gems are recommended
+3. "confidence": score from 0.0 to 1.0
 
-Respond with a JSON object:
-{{
-  "suggestions": [
-    {{
-      "name": "gem_name",
-      "reason": "explanation",
-      "category": "category",
-      "priority": "priority"
-    }}
-  ],
-  "reasoning": "Overall explanation of suggestion strategy"
-}}
+Focus on popular, well-maintained gems that are commonly used for this purpose."""
 
-Ensure all suggested gems are real, actively maintained Ruby gems.
-"""
-
-        # Call OpenAI API
-        response = await asyncio.to_thread(
-            client.chat.completions.create,
-            model=MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=1500,
-            temperature=0.4
-        )
-        
-        # Parse response
-        import json
+        # Call Claude API
         try:
-            result = json.loads(response.choices[0].message.content)
-            suggestions = result.get("suggestions", [])
-            reasoning = result.get("reasoning", "AI-generated suggestions based on project context")
-            
-            # Validate and limit suggestions
-            valid_suggestions = []
-            for suggestion in suggestions[:request.max_suggestions]:
-                if isinstance(suggestion, dict) and "name" in suggestion:
-                    valid_suggestions.append({
-                        "name": suggestion.get("name", "unknown"),
-                        "reason": suggestion.get("reason", "No reason provided"),
-                        "category": suggestion.get("category", "general"),
-                        "priority": suggestion.get("priority", "medium")
-                    })
-            
-            return SuggestResponse(
-                suggestions=valid_suggestions,
-                reasoning=reasoning
+            response = client.messages.create(
+                model=MODEL,
+                max_tokens=1500,
+                messages=[{"role": "user", "content": prompt}]
             )
             
-        except json.JSONDecodeError:
-            # Fallback suggestions
-            logger.warning("Failed to parse LLM response, using fallback suggestions")
-            fallback_suggestions = [
-                {
-                    "name": "rspec",
-                    "reason": "Essential testing framework for Ruby applications",
-                    "category": "testing",
-                    "priority": "high"
-                },
-                {
-                    "name": "rubocop",
-                    "reason": "Code quality and style enforcement",
-                    "category": "development",
-                    "priority": "medium"
-                }
-            ]
+            # Parse Claude response
+            response_text = response.content[0].text
+            logger.info(f"Claude suggestion response length: {len(response_text)}")
             
+            # Try to extract JSON from response
+            try:
+                # Claude might wrap JSON in markdown code blocks
+                if "```json" in response_text:
+                    start = response_text.find("```json") + 7
+                    end = response_text.find("```", start)
+                    response_text = response_text[start:end].strip()
+                elif "```" in response_text:
+                    start = response_text.find("```") + 3
+                    end = response_text.find("```", start)
+                    response_text = response_text[start:end].strip()
+                
+                result = json.loads(response_text)
+                
+                # Validate and convert suggestions
+                suggestions = []
+                for suggestion in result.get("suggestions", []):
+                    gem_info = GemInfo(
+                        name=suggestion.get("name", "unknown"),
+                        description=suggestion.get("description", ""),
+                        keywords=suggestion.get("keywords", []),
+                        download_count=suggestion.get("download_count", 0),
+                        stars=suggestion.get("stars", 0)
+                    )
+                    suggestions.append(gem_info)
+                
+                return SuggestResponse(
+                    suggestions=suggestions,
+                    reasoning=result.get("reasoning", "No reasoning provided"),
+                    confidence=min(1.0, max(0.0, float(result.get("confidence", 0.8))))
+                )
+                
+            except (json.JSONDecodeError, ValueError, KeyError) as e:
+                logger.warning(f"Failed to parse Claude suggestion response: {e}")
+                # Fallback suggestions
+                fallback_suggestions = [
+                    GemInfo(
+                        name="rails",
+                        description="Full-stack web application framework",
+                        keywords=["web", "framework", "mvc"],
+                        download_count=500000000,
+                        stars=55000
+                    ),
+                    GemInfo(
+                        name="sinatra",
+                        description="Lightweight web application DSL",
+                        keywords=["web", "lightweight", "dsl"],
+                        download_count=100000000,
+                        stars=12000
+                    )
+                ]
+                return SuggestResponse(
+                    suggestions=fallback_suggestions,
+                    reasoning=f"Fallback suggestions due to parsing error: {e}",
+                    confidence=0.3
+                )
+                
+        except anthropic.APIError as e:
+            logger.error(f"Claude API error in suggestions: {e}")
+            # Fallback suggestions
+            fallback_suggestions = [
+                GemInfo(
+                    name="bundler",
+                    description="Dependency manager for Ruby projects",
+                    keywords=["dependency", "management", "gems"],
+                    download_count=1000000000,
+                    stars=4900
+                )
+            ]
             return SuggestResponse(
-                suggestions=fallback_suggestions[:request.max_suggestions],
-                reasoning="Fallback suggestions - common useful gems"
+                suggestions=fallback_suggestions,
+                reasoning="Fallback suggestions due to API error",
+                confidence=0.4
             )
             
     except Exception as e:
-        logger.error(f"Error generating suggestions: {e}")
-        raise HTTPException(status_code=500, detail=f"Suggestion generation failed: {str(e)}")
+        logger.error(f"Unexpected error in suggest_gems: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.get("/metrics")
 async def get_metrics():
-    """
-    Metrics endpoint for Lane A D3 charts integration.
-    Provides aggregate data for visualization as required by main.md.
-    """
+    """Get AI service metrics for dashboard."""
     return {
         "timestamp": datetime.now().isoformat(),
         "gem_metrics": {
@@ -375,22 +390,6 @@ async def get_metrics():
         }
     }
 
-@app.get("/")
-async def root():
-    """Root endpoint with service information."""
-    return {
-        "service": "GemHub LLM Gateway",
-        "version": "1.0.0",
-        "endpoints": ["/health", "/rank", "/suggest", "/metrics"],
-        "documentation": "/docs"
-    }
-
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8001,
-        reload=True,
-        log_level="info"
-    ) 
+    uvicorn.run(app, host="0.0.0.0", port=8001) 

@@ -108,8 +108,8 @@ You are a Python/FastAPI & data-viz engineer.
 
 1. **LLM Gateway (`services/llm_gateway`)**
    • FastAPI app, async routes `/rank`, `/suggest`.  
-   • Uses `openai` 1.x; rate-limits via `slowapi`.  
-   • Env vars: `OPENAI_API_KEY`, `MODEL=gpt-4o-mini`.
+   • Uses `anthropic` client; rate-limits via `slowapi`.  
+   • Env vars: `ANTHROPIC_API_KEY`, `MODEL=claude-3-haiku-20240307`.
 
 2. **Vector Store**
    • Script `services/vector_store/ingest.py` builds FAISS index from gem READMEs.  
@@ -127,7 +127,7 @@ You are a Python/FastAPI & data-viz engineer.
 - [ ] `POST /rank` returns gem IDs ordered by LLM relevance.  
 - [ ] FAISS index builds in <30 s for 100 docs.  
 - [ ] Charts render in sidebar with real data.  
-- [ ] Gateway unit tests mock OpenAI and fully pass.  
+- [ ] Gateway unit tests mock Anthropic and fully pass.  
 
 
 ⸻

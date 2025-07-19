@@ -1,6 +1,6 @@
 """
 Unit tests for GemHub LLM Gateway Service - Lane D
-Tests all endpoints with mocked OpenAI integration
+Tests all endpoints with mocked Anthropic integration
 """
 
 import pytest
@@ -13,7 +13,7 @@ import os
 # Import the app
 import sys
 sys.path.append('..')
-from main import app, get_openai_client
+from main import app, get_anthropic_client
 
 # Test client
 client = TestClient(app)
@@ -23,12 +23,12 @@ class TestLLMGateway:
     
     def setup_method(self):
         """Setup for each test method."""
-        os.environ["OPENAI_API_KEY"] = "test-key-123"
+        os.environ["ANTHROPIC_API_KEY"] = "test-key-123"
         
     def teardown_method(self):
         """Cleanup after each test method."""
-        if "OPENAI_API_KEY" in os.environ:
-            del os.environ["OPENAI_API_KEY"]
+        if "ANTHROPIC_API_KEY" in os.environ:
+            del os.environ["ANTHROPIC_API_KEY"]
 
     def test_root_endpoint(self):
         """Test the root endpoint returns service information."""
@@ -46,35 +46,36 @@ class TestLLMGateway:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"
-        assert data["model"] == "gpt-4o-mini"
+        assert data["model"] == "claude-3-haiku-20240307"
         assert data["api_key_configured"] == True
 
     def test_health_endpoint_without_api_key(self):
         """Test health endpoint when API key is not configured."""
-        del os.environ["OPENAI_API_KEY"]
-        with patch('main.openai.api_key', None):
+        del os.environ["ANTHROPIC_API_KEY"]
+        with patch('main.ANTHROPIC_API_KEY', None):
             response = client.get("/health")
             assert response.status_code == 200
             data = response.json()
             assert data["status"] == "healthy"
             assert data["api_key_configured"] == False
 
-    @patch('main.openai.OpenAI')
-    def test_rank_gems_success(self, mock_openai_class):
-        """Test successful gem ranking with mocked OpenAI response."""
-        # Mock OpenAI response
+    @patch('main.anthropic.Anthropic')
+    def test_rank_gems_success(self, mock_anthropic_class):
+        """Test successful gem ranking with mocked Anthropic response."""
+        # Mock Anthropic response
         mock_client = MagicMock()
-        mock_openai_class.return_value = mock_client
+        mock_anthropic_class.return_value = mock_client
         
         mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = json.dumps({
-            "rankings": [0, 1],
-            "scores": [0.9, 0.7],
-            "reasoning": "Rails is more relevant for web frameworks"
+        mock_content = MagicMock()
+        mock_content.text = json.dumps({
+            "ranked_gems": ["rails", "sinatra"],
+            "reasoning": "Rails is more relevant for web frameworks",
+            "confidence": 0.9
         })
+        mock_response.content = [mock_content]
         
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_client.messages.create.return_value = mock_response
         
         # Test data
         request_data = {
@@ -92,30 +93,29 @@ class TestLLMGateway:
                     "keywords": ["web", "micro"],
                     "stars": 12000
                 }
-            ],
-            "max_results": 2
+            ]
         }
         
         response = client.post("/rank", json=request_data)
         assert response.status_code == 200
         
         data = response.json()
-        assert data["gem_names"] == ["rails", "sinatra"]
-        assert data["scores"] == [0.9, 0.7]
+        assert data["ranked_gems"] == ["rails", "sinatra"]
+        assert data["confidence"] == 0.9
         assert "reasoning" in data
         
-    @patch('main.openai.OpenAI')
-    def test_rank_gems_fallback_on_json_error(self, mock_openai_class):
-        """Test gem ranking fallback when OpenAI response is invalid JSON."""
-        # Mock OpenAI response with invalid JSON
+    @patch('main.anthropic.Anthropic')
+    def test_rank_gems_fallback_on_json_error(self, mock_anthropic_class):
+        """Test gem ranking fallback when Anthropic response is invalid JSON."""
+        # Mock Anthropic response with invalid JSON
         mock_client = MagicMock()
-        mock_openai_class.return_value = mock_client
+        mock_anthropic_class.return_value = mock_client
         
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = "Invalid JSON response"
         
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_client.messages.create.return_value = mock_response
         
         request_data = {
             "query": "testing framework",
@@ -160,7 +160,7 @@ class TestLLMGateway:
 
     def test_rank_gems_no_api_key(self):
         """Test rank endpoint behavior without API key."""
-        del os.environ["OPENAI_API_KEY"]
+        del os.environ["ANTHROPIC_API_KEY"]
         with patch('main.openai.api_key', None):
             request_data = {
                 "query": "web framework",
@@ -169,12 +169,12 @@ class TestLLMGateway:
             
             response = client.post("/rank", json=request_data)
             assert response.status_code == 503
-            assert "OpenAI API key not configured" in response.json()["detail"]
+            assert "Anthropic API key not configured" in response.json()["detail"]
 
-    @patch('main.openai.OpenAI')
+    @patch('main.anthropic.Anthropic')
     def test_suggest_gems_success(self, mock_openai_class):
-        """Test successful gem suggestions with mocked OpenAI response."""
-        # Mock OpenAI response
+        """Test successful gem suggestions with mocked Anthropic response."""
+        # Mock Anthropic response
         mock_client = MagicMock()
         mock_openai_class.return_value = mock_client
         
@@ -198,7 +198,7 @@ class TestLLMGateway:
             "reasoning": "Based on authentication requirements for mobile API"
         })
         
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_client.messages.create.return_value = mock_response
         
         request_data = {
             "context": "Building a REST API for mobile app with authentication",
@@ -215,10 +215,10 @@ class TestLLMGateway:
         assert data["suggestions"][0]["priority"] == "high"
         assert "reasoning" in data
 
-    @patch('main.openai.OpenAI')  
+    @patch('main.anthropic.Anthropic')  
     def test_suggest_gems_fallback(self, mock_openai_class):
-        """Test gem suggestions fallback when OpenAI response is invalid."""
-        # Mock OpenAI response with invalid JSON
+        """Test gem suggestions fallback when Anthropic response is invalid."""
+        # Mock Anthropic response with invalid JSON
         mock_client = MagicMock()
         mock_openai_class.return_value = mock_client
         
@@ -226,7 +226,7 @@ class TestLLMGateway:
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = "Invalid JSON"
         
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_client.messages.create.return_value = mock_response
         
         request_data = {
             "context": "Test context",
@@ -253,16 +253,16 @@ class TestLLMGateway:
         })
         assert response.status_code == 422
 
-    @patch('main.openai.OpenAI')
+    @patch('main.anthropic.Anthropic')
     def test_rate_limiting(self, mock_openai_class):
         """Test rate limiting on endpoints."""
-        # Mock OpenAI to avoid actual API calls
+        # Mock Anthropic to avoid actual API calls
         mock_client = MagicMock()
         mock_openai_class.return_value = mock_client
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = '{"rankings": [], "scores": [], "reasoning": "test"}'
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_client.messages.create.return_value = mock_response
         
         request_data = {
             "query": "test",
@@ -279,13 +279,13 @@ class TestLLMGateway:
         # Should have at least one rate limited response
         assert 429 in responses  # Too Many Requests
 
-    @patch('main.openai.OpenAI')
+    @patch('main.anthropic.Anthropic')
     def test_openai_api_error_handling(self, mock_openai_class):
-        """Test handling of OpenAI API errors."""
-        # Mock OpenAI to raise an exception
+        """Test handling of Anthropic API errors."""
+        # Mock Anthropic to raise an exception
         mock_client = MagicMock()
         mock_openai_class.return_value = mock_client
-        mock_client.chat.completions.create.side_effect = Exception("API Error")
+        mock_client.messages.create.side_effect = Exception("API Error")
         
         request_data = {
             "query": "test",
@@ -347,7 +347,7 @@ class TestLLMGateway:
 class TestLLMGatewayIntegration:
     """Integration tests that test the service as a whole."""
     
-    @patch('main.openai.OpenAI')
+    @patch('main.anthropic.Anthropic')
     def test_end_to_end_ranking_flow(self, mock_openai_class):
         """Test complete ranking flow from request to response."""
         # Setup mock
@@ -360,7 +360,7 @@ class TestLLMGatewayIntegration:
             "scores": [0.8, 0.6],
             "reasoning": "Sinatra is better for APIs"
         })
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_client.messages.create.return_value = mock_response
         
         # Real-world-like request
         request_data = {

@@ -16,12 +16,12 @@ from datetime import datetime
 
 try:
     import faiss
-    import openai
+    import anthropic
     from sentence_transformers import SentenceTransformer
     HAS_DEPENDENCIES = True
 except ImportError as e:
     print(f"Missing dependencies: {e}")
-    print("Install with: pip install faiss-cpu sentence-transformers")
+    print("Install with: pip install faiss-cpu sentence-transformers anthropic")
     HAS_DEPENDENCIES = False
 
 # Configure logging

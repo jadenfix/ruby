@@ -1,12 +1,12 @@
 # Requirements for GemHub LLM Gateway Service - Lane D
-# FastAPI service with OpenAI integration and rate limiting
+# FastAPI service with Anthropic Claude integration and rate limiting
 
 # FastAPI and async server
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 
-# OpenAI API client (1.x series as specified)
-openai==1.6.1
+# Anthropic API client for Claude models
+anthropic==0.8.1
 
 # Rate limiting
 slowapi==0.1.9
