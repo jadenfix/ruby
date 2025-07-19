@@ -1,0 +1,14 @@
+# Global owners
+* @gemhub-team
+
+# Extension specific
+/extension/ @frontend-team @gemhub-team
+
+# CLI specific  
+/cli/ @backend-team @gemhub-team
+
+# GitHub Actions
+/.github/ @devops-team @gemhub-team
+
+# Documentation
+*.md @docs-team @gemhub-team 

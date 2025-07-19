@@ -100,7 +100,7 @@ gemhub/
 
 How to Run (developer machine)
 
-git clone https://github.com/your-org/gemhub && cd gemhub
+git clone https://github.com/jadenfix/ruby && cd gemhub
 docker compose up -d    # boots API, FAISS, LLM gateway
 npm run dev --workspace extension    # hot-reload VS Code panel
 bin/gemhub wizard       # same flow via CLI
