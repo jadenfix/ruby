@@ -12,6 +12,21 @@ set :database, ENV['DATABASE_URL'] || 'sqlite://gemhub.db'
 # Enable JSON parsing
 use Rack::JSONBodyParser
 
+# Enable CORS for frontend
+before do
+  headers 'Access-Control-Allow-Origin' => '*',
+          'Access-Control-Allow-Methods' => ['OPTIONS', 'GET', 'POST', 'PUT', 'DELETE'],
+          'Access-Control-Allow-Headers' => 'Content-Type, Authorization'
+end
+
+# Handle preflight requests
+options '*' do
+  response.headers['Access-Control-Allow-Origin'] = '*'
+  response.headers['Access-Control-Allow-Methods'] = 'HEAD,GET,POST,PUT,DELETE,OPTIONS'
+  response.headers['Access-Control-Allow-Headers'] = 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Cache-Control, Accept, Authorization'
+  200
+end
+
 # Database setup
 DB = Sequel.connect(ENV['DATABASE_URL'] || settings.database)
 
