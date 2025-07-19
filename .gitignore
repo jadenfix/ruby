@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+extension/dist/
+extension/out/
+*.vsix
+
+# Development
+.env
+.env.local
+
+# Logs
+*.log
+
+# Coverage
+coverage/
+*.lcov
+
+# Ruby
+.bundle/
+vendor/
+.rspec_status
+Gemfile.lock
+
+# OS generated files
+.DS_Store
+.Trashes
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*~
+
+# Gem builds
+*.gem

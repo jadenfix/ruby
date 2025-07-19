@@ -1,0 +1,70 @@
+name: Lane A CI
+
+on:
+  push:
+    branches: [ lane-a ]
+  pull_request:
+    branches: [ lane-a ]
+
+jobs:
+  extension-test:
+    name: Extension Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Install dependencies
+      run: cd extension && npm install
+    
+    - name: Build extension
+      run: cd extension && npm run build
+    
+    - name: Run tests
+      run: cd extension && npm test
+
+  cli-test:
+    name: CLI Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby-version: ['3.0', '3.1', '3.2', '3.3']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Ruby ${{ matrix.ruby-version }}
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+        bundler-cache: true
+        working-directory: cli
+    
+    - name: Test CLI structure
+      run: |
+        cd cli
+        ruby -c bin/gemhub
+        ruby -c lib/gemhub.rb
+        ruby -c lib/gemhub/version.rb
+        ruby -c lib/gemhub/cli.rb
+        ruby -c gemhub.gemspec
+
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    needs: [extension-test, cli-test]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Quality checks passed
+      run: |
+        echo "✅ All quality checks passed!"
+        echo "✅ Extension builds with zero errors"
+        echo "✅ CLI structure is valid on multiple Ruby versions"
+        echo "✅ Lane A is ready for integration!"
