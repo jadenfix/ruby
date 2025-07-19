@@ -1,0 +1,57 @@
+{
+  "gem_name": "rails",
+  "gem_version": null,
+  "scan_timestamp": "2025-07-19T12:18:50-07:00",
+  "total_vulnerabilities": 2,
+  "vulnerabilities": [
+    {
+      "id": "CVE-2023-1234",
+      "title": "Rails SQL Injection Vulnerability",
+      "description": "A SQL injection vulnerability in Rails allows attackers to execute arbitrary SQL commands.",
+      "severity": "high",
+      "cvss_score": 8.5,
+      "published_at": "2023-01-15T10:00:00Z",
+      "patched_versions": [
+        ">= 7.0.4.1",
+        ">= 6.1.7.1"
+      ],
+      "unaffected_versions": [
+        "< 6.0.0"
+      ],
+      "affected_versions": [
+        ">= 6.0.0",
+        "< 6.1.7.1",
+        ">= 7.0.0",
+        "< 7.0.4.1"
+      ],
+      "is_vulnerable": true
+    },
+    {
+      "id": "CVE-2023-5678",
+      "title": "Rails XSS Vulnerability",
+      "description": "Cross-site scripting vulnerability in Rails view helpers.",
+      "severity": "medium",
+      "cvss_score": 6.1,
+      "published_at": "2023-02-20T14:30:00Z",
+      "patched_versions": [
+        ">= 7.0.4.2"
+      ],
+      "unaffected_versions": [
+        "< 7.0.0"
+      ],
+      "affected_versions": [
+        ">= 7.0.0",
+        "< 7.0.4.2"
+      ],
+      "is_vulnerable": true
+    }
+  ],
+  "summary": {
+    "critical": 0,
+    "high": 1,
+    "medium": 1,
+    "low": 0,
+    "info": 0
+  },
+  "risk_score": 11.0
+}
