@@ -34,6 +34,7 @@ GEM
       rb-fsevent (~> 0.10, >= 0.10.3)
       rb-inotify (~> 0.9, >= 0.9.10)
     logger (1.7.0)
+    mini_portile2 (2.8.9)
     minitest (5.25.5)
     multi_json (1.17.0)
     mustermann (3.0.3)
@@ -82,6 +83,8 @@ GEM
       rack-protection (= 3.2.0)
       sinatra (= 3.2.0)
       tilt (~> 2.0)
+    sqlite3 (1.7.3)
+      mini_portile2 (~> 2.8.0)
     sqlite3 (1.7.3-arm64-darwin)
     sqlite3 (1.7.3-x86_64-darwin)
     tilt (2.6.1)
@@ -108,7 +111,7 @@ DEPENDENCIES
   sqlite3 (~> 1.6)
 
 RUBY VERSION
-   ruby 3.1.2p20
+   ruby 3.4.5p51
 
 BUNDLED WITH
    2.6.9

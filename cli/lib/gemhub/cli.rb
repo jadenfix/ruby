@@ -529,10 +529,12 @@ module GemHub
       params = { limit: options[:limit] }
       params[:search] = options[:search] if options[:search]
 
-      response = conn.get("/gems", params)
+      response = conn.get("/gems", params) do |req|
+        req.headers["Authorization"] = "Bearer #{ENV['GEMHUB_API_TOKEN']}" if ENV["GEMHUB_API_TOKEN"]
+      end
       
       if response.success?
-        response.body
+        response.body['gems'] || []
       else
         say_error("Failed to fetch gems: #{response.status}")
         []
