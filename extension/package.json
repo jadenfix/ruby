@@ -1,0 +1,56 @@
+{
+  "name": "gemhub-extension",
+  "displayName": "GemHub",
+  "description": "Developer-facing UX for GemHub - Ruby gem marketplace, sandbox, and benchmarks",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "gemhub.wizard",
+        "title": "GemHub: Create New Gem"
+      },
+      {
+        "command": "gemhub.create",
+        "title": "GemHub: Generate Gem Scaffold"
+      },
+      {
+        "command": "gemhub.benchmark",
+        "title": "GemHub: Run Benchmarks"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "gemhubSidebar",
+          "name": "GemHub",
+          "when": "resourceExtname"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "dev": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --watch",
+    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --minify",
+    "lint": "eslint src --ext ts --max-warnings=0",
+    "test": "echo 'Tests will be implemented in full version' && exit 0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "esbuild": "^0.19.0",
+    "eslint": "^8.50.0",
+    "typescript": "^5.2.0"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}
