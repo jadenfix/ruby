@@ -75,7 +75,8 @@ require_relative 'models/badge'
 
 # Simple token authentication
 before do
-  unless request.path == '/health' || request.path == '/docs'
+  # Skip authentication for health checks, docs, and OPTIONS requests (CORS preflight)
+  unless request.path == '/health' || request.path == '/docs' || request.request_method == 'OPTIONS'
     token = request.env['HTTP_AUTHORIZATION']&.gsub('Bearer ', '')
     halt 401, json(error: 'Unauthorized') unless token == ENV['API_TOKEN']
   end
