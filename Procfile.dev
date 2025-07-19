@@ -1,0 +1,1 @@
+api: cd services/api && bundle exec rerun --pattern "**/*.rb" -- ruby app.rb 
