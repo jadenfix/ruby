@@ -1,3 +1,4 @@
-# Development processes for GemHub Lane A
+# Development processes for GemHub
 extension: cd extension && npm run dev
 cli: cd cli && bundle exec bin/gemhub wizard 
+api: cd services/api && bundle exec rerun --pattern "**/*.rb" -- ruby app.rb
