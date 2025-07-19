@@ -1,0 +1,158 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap');
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  body {
+    @apply antialiased;
+  }
+}
+
+@layer components {
+  /* Custom button styles */
+  .btn-primary {
+    @apply bg-ruby-600 hover:bg-ruby-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:ring-offset-2;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2;
+  }
+  
+  .btn-success {
+    @apply bg-gem-600 hover:bg-gem-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gem-500 focus:ring-offset-2;
+  }
+  
+  /* Card styles */
+  .card {
+    @apply bg-white rounded-lg border border-gray-200 shadow-sm;
+  }
+  
+  .card-hover {
+    @apply card hover:shadow-md transition-shadow duration-200;
+  }
+  
+  /* Input styles */
+  .input {
+    @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-ruby-500 focus:ring-ruby-500 sm:text-sm;
+  }
+  
+  /* Badge styles */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .badge-security {
+    @apply bg-red-100 text-red-800;
+  }
+  
+  .badge-performance {
+    @apply bg-blue-100 text-blue-800;
+  }
+  
+  .badge-quality {
+    @apply bg-green-100 text-green-800;
+  }
+  
+  .badge-popularity {
+    @apply bg-purple-100 text-purple-800;
+  }
+  
+  .badge-maintenance {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  
+  /* Navigation styles */
+  .nav-link {
+    @apply flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200;
+  }
+  
+  .nav-link-active {
+    @apply bg-ruby-100 text-ruby-900;
+  }
+  
+  .nav-link-inactive {
+    @apply text-gray-600 hover:text-gray-900 hover:bg-gray-100;
+  }
+  
+  /* Loading spinner */
+  .spinner {
+    @apply animate-spin rounded-full h-6 w-6 border-b-2 border-ruby-600;
+  }
+  
+  /* Rating stars */
+  .star {
+    @apply h-5 w-5 transition-colors duration-200;
+  }
+  
+  .star-filled {
+    @apply text-yellow-400;
+  }
+  
+  .star-empty {
+    @apply text-gray-300;
+  }
+  
+  .star-interactive:hover {
+    @apply text-yellow-300 cursor-pointer;
+  }
+}
+
+@layer utilities {
+  /* Custom animations */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .animate-bounce-gentle {
+    animation: bounceGentle 2s infinite;
+  }
+  
+  /* Scroll styles */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(156 163 175) transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(156 163 175);
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(107 114 128);
+  }
+  
+  /* Glass effect */
+  .glass {
+    @apply bg-white/80 backdrop-blur-sm border border-white/20;
+  }
+  
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-ruby-600 to-gem-600 bg-clip-text text-transparent;
+  }
+}
+
+/* Dark mode support (for future implementation) */
+@media (prefers-color-scheme: dark) {
+  /* Dark mode styles can be added here */
+} 

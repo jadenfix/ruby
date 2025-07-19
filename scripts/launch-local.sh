@@ -213,10 +213,30 @@ stop_services() {
         fi
     fi
     
-    # Kill any remaining processes on port 4567
+    # Stop Frontend server
+    if [ -f "$PROJECT_ROOT/frontend/frontend.pid" ]; then
+        local frontend_pid=$(cat "$PROJECT_ROOT/frontend/frontend.pid")
+        if kill -0 $frontend_pid 2>/dev/null; then
+            log_info "Stopping Frontend server (PID: $frontend_pid)"
+            kill $frontend_pid
+            rm -f "$PROJECT_ROOT/frontend/frontend.pid"
+            log_success "Frontend server stopped"
+        else
+            log_warning "Frontend server was not running"
+            rm -f "$PROJECT_ROOT/frontend/frontend.pid"
+        fi
+    fi
+    
+    # Kill any remaining processes on ports
     if check_port 4567; then
         local pid=$(lsof -ti:4567)
         log_info "Killing process on port 4567: $pid"
+        kill $pid 2>/dev/null || true
+    fi
+    
+    if check_port 3000; then
+        local pid=$(lsof -ti:3000)
+        log_info "Killing process on port 3000: $pid"
         kill $pid 2>/dev/null || true
     fi
 }
@@ -248,6 +268,21 @@ show_status() {
         log_success "CLI: Available"
     else
         log_warning "CLI: Not working"
+    fi
+    
+    # Frontend Status
+    if check_port 3000; then
+        local pid=$(lsof -ti:3000)
+        log_success "Frontend: Running (PID: $pid, Port: 3000)"
+        
+        # Test frontend health
+        if curl -s -f "http://localhost:3000" > /dev/null 2>&1; then
+            log_success "  Health check: PASSED"
+        else
+            log_warning "  Health check: FAILED"
+        fi
+    else
+        log_warning "Frontend: Not running"
     fi
     
     # Extension Status
@@ -321,6 +356,44 @@ build_extension() {
     fi
 }
 
+# Function to start frontend
+start_frontend() {
+    local api_port=${1:-4567}
+    
+    log_info "Starting React frontend on port 3000..."
+    
+    if check_port 3000; then
+        log_warning "Port 3000 is already in use"
+        local pid=$(lsof -ti:3000)
+        log_info "Process using port 3000: $pid"
+        return 1
+    fi
+    
+    cd "$PROJECT_ROOT/frontend"
+    
+    # Create environment file for API configuration
+    cat > .env.local << EOF
+REACT_APP_API_URL=http://localhost:${api_port}
+REACT_APP_API_TOKEN=${API_TOKEN}
+REACT_APP_VERSION=1.0.0
+EOF
+    
+    # Start frontend in background
+    nohup npm start > frontend.log 2>&1 &
+    local frontend_pid=$!
+    echo $frontend_pid > frontend.pid
+    
+    # Wait for frontend to be ready
+    if wait_for_service "http://localhost:3000" "Frontend server"; then
+        log_success "Frontend started with PID $frontend_pid"
+        log_info "Frontend logs: $PROJECT_ROOT/frontend/frontend.log"
+        return 0
+    else
+        log_error "Failed to start frontend server"
+        return 1
+    fi
+}
+
 # Main command processing
 COMMAND=${1:-start}
 SEED_DB=true
@@ -385,19 +458,21 @@ case $COMMAND in
         fi
         
         start_api $API_PORT
-        build_extension
-        
-        echo ""
-        log_success "🚀 GemHub platform started successfully!"
-        log_info "📡 API Server: http://localhost:$API_PORT"
-        log_info "🔑 API Token: $API_TOKEN"
-        log_info "💎 CLI: gemhub (in cli/ directory)"
-        log_info "🧩 Extension: built in extension/dist/"
-        echo ""
-        log_info "To test the platform:"
-        log_info "  $0 test"
-        log_info "  $0 cli"
-        log_info "  $0 status"
+            build_extension
+    start_frontend $API_PORT
+    
+    echo ""
+    log_success "🚀 GemHub platform started successfully!"
+    log_info "📡 API Server: http://localhost:$API_PORT"
+    log_info "🌐 Frontend: http://localhost:3000"
+    log_info "🔑 API Token: $API_TOKEN"
+    log_info "💎 CLI: gemhub (in cli/ directory)"
+    log_info "🧩 Extension: built in extension/dist/"
+    echo ""
+    log_info "To test the platform:"
+    log_info "  $0 test"
+    log_info "  $0 cli"
+    log_info "  $0 status"
         ;;
         
     stop)
