@@ -1,7 +1,7 @@
 {
   "gem_name": "rails",
   "gem_version": null,
-  "scan_time": "2025-07-19T14:11:34-07:00",
+  "scan_time": "2025-07-19T14:01:30-07:00",
   "vulnerabilities": [
     {
       "id": "CVE-2023-1234",

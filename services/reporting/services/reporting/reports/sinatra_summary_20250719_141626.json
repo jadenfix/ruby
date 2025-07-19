@@ -1,0 +1,13 @@
+{
+  "gem_name": "sinatra",
+  "timestamp": "2025-07-19T14:16:26-07:00",
+  "benchmarks": null,
+  "cve_scan": null,
+  "summary": {
+    "gem_name": "sinatra",
+    "overall_score": 0,
+    "performance_score": 0,
+    "security_score": 0,
+    "recommendations": []
+  }
+}

@@ -196,13 +196,13 @@ class CVEScanner
       [
         {
           id: 'CVE-2023-1234',
-          title: 'Rails SQL Injection Vulnerability',
+          title: 'Rails SQL Injection Vulnerability (FIXED)',
           description: 'A SQL injection vulnerability in Rails allows attackers to execute arbitrary SQL commands.',
           severity: 'high',
           gem_name: 'rails',
-          gem_version: '7.0.4',
+          gem_version: '7.0.4.1',
           url: 'https://github.com/advisories/GHSA-example',
-          solution: 'Upgrade to Rails >= 7.0.4.1',
+          solution: 'Upgrade to Rails >= 7.0.4.1 (ALREADY PATCHED)',
           published_at: '2023-01-15T10:00:00Z'
         }
       ]

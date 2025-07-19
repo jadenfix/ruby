@@ -1,17 +1,17 @@
 {
   "gem_name": "rails",
   "gem_version": null,
-  "scan_time": "2025-07-19T14:11:34-07:00",
+  "scan_time": "2025-07-19T13:58:39-07:00",
   "vulnerabilities": [
     {
       "id": "CVE-2023-1234",
-      "title": "Rails SQL Injection Vulnerability (FIXED)",
+      "title": "Rails SQL Injection Vulnerability",
       "description": "A SQL injection vulnerability in Rails allows attackers to execute arbitrary SQL commands.",
       "severity": "high",
       "gem_name": "rails",
-      "gem_version": "7.0.4.1",
+      "gem_version": "7.0.4",
       "url": "https://github.com/advisories/GHSA-example",
-      "solution": "Upgrade to Rails >= 7.0.4.1 (ALREADY PATCHED)",
+      "solution": "Upgrade to Rails >= 7.0.4.1",
       "published_at": "2023-01-15T10:00:00Z"
     }
   ],
