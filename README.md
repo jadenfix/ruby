@@ -11,7 +11,7 @@ GemHub is built as a microservices architecture with the following components:
 - **CLI Tools**: Thor-based command line interface
 - **Frontend**: React + TypeScript panels for marketplace, sandbox, benchmarks
 
-### Lane B - Core API & Registry  
+### Lane B - Core API & Registry
 - **Sinatra API**: Lightweight Ruby API with SQLite storage
 - **Gem Registry**: CRUD operations for gem metadata
 - **Rating System**: Community-driven gem ratings and badges
@@ -33,7 +33,7 @@ GemHub is built as a microservices architecture with the following components:
 FastAPI service providing AI-powered gem ranking and suggestions:
 
 - **`/rank`**: Rank gems by relevance to search queries
-- **`/suggest`**: Get contextual gem recommendations  
+- **`/suggest`**: Get contextual gem recommendations
 - **`/health`**: Service health monitoring
 
 **Features:**
@@ -94,7 +94,7 @@ FAISS-based semantic search engine:
 The following services will be available:
 
 - **API Server**: http://localhost:4567
-- **LLM Gateway**: http://localhost:8001  
+- **LLM Gateway**: http://localhost:8001
 - **Vector Store**: http://localhost:8002
 - **CVE Scanner**: http://localhost:8003
 
@@ -131,7 +131,7 @@ make llm-test
 
 ```bash
 make help           # Show all available commands
-make dev            # Start development environment  
+make dev            # Start development environment
 make build          # Build all Docker images
 make test           # Run test suite
 make clean          # Clean up containers and volumes
@@ -157,7 +157,7 @@ curl -X POST http://localhost:8001/rank \
         "stars": 55000
       },
       {
-        "name": "sinatra", 
+        "name": "sinatra",
         "description": "Lightweight web framework",
         "keywords": ["web", "micro", "api"],
         "stars": 12000
@@ -252,7 +252,7 @@ gemhub/
 ## Lane D Definition of Done Checklist
 
 - [x] LLM Gateway (`services/llm_gateway`) - FastAPI app with `/rank`, `/suggest` routes
-- [x] Vector Store - FAISS index builds in <30s for 100 docs  
+- [x] Vector Store - FAISS index builds in <30s for 100 docs
 - [x] Docker Compose integration - llm_gateway & vector_store services
 - [x] Makefile target `make embed` to refresh FAISS ⭐
 - [ ] Charts render in sidebar with real data (pending Lane A integration)
@@ -276,4 +276,18 @@ MIT License - see LICENSE file for details.
 For issues or questions:
 - Create GitHub issues for bugs
 - Check service logs: `make logs`
-- Verify environment: `make health` 
+- Verify environment: `make health`
+## Local API persistence check
+
+The lightweight development API supports authenticated gem creation and reads.
+`python3 scripts/check_api_http.py` launches the actual Ruby HTTP server, checks
+authorization/invalid/duplicate requests, creates a record, restarts the process,
+and verifies the record remains available. Install Ruby and `gem install webrick`
+first. `RUBY_BIN` may select a task-specific Ruby interpreter.
+
+Records persist atomically in `services/api/data/gems.json`; set
+`GEMHUB_DATA_PATH` to choose another local file. The server binds loopback by
+default; `PORT` and `BIND_ADDRESS` are configurable. Supply `API_TOKEN` for your
+local session; the token is never printed. The `/scan` endpoint returns 501
+because no scanner is implemented, rather than reporting fabricated clean scans.
+This verifies the lightweight API, not Sinatra/SQLite, sandbox, or benchmark services.

@@ -2,6 +2,9 @@
 require 'webrick'
 require 'json'
 require 'cgi'
+require 'time'
+require 'fileutils'
+require 'thread'
 
 # Simple in-memory data store
 $gems = [
@@ -77,6 +80,25 @@ $gems = [
   }
 ]
 
+DATA_PATH = File.expand_path(ENV.fetch('GEMHUB_DATA_PATH', 'data/gems.json'), __dir__)
+DATA_LOCK = Mutex.new
+if File.exist?(DATA_PATH)
+  stored = JSON.parse(File.read(DATA_PATH), symbolize_names: true)
+  raise 'Gem data must be an array' unless stored.is_a?(Array)
+  $gems = stored
+end
+
+def persist_gems(records)
+  FileUtils.mkdir_p(File.dirname(DATA_PATH))
+  temporary = "#{DATA_PATH}.tmp"
+  File.open(temporary, 'w', 0600) do |file|
+    file.write(JSON.generate(records))
+    file.flush
+    file.fsync
+  end
+  File.rename(temporary, DATA_PATH)
+end
+
 class APIServer < WEBrick::HTTPServlet::AbstractServlet
   def initialize(server)
     super
@@ -93,7 +115,8 @@ class APIServer < WEBrick::HTTPServlet::AbstractServlet
   def authenticate(request)
     auth_header = request['Authorization']
     return false unless auth_header
-    token = auth_header.gsub('Bearer ', '')
+    return false unless auth_header.start_with?('Bearer ')
+    token = auth_header.delete_prefix('Bearer ')
     token == @api_token
   end
 
@@ -162,10 +185,22 @@ class APIServer < WEBrick::HTTPServlet::AbstractServlet
     when '/gems'
       begin
         data = JSON.parse(request.body)
+        unless data.is_a?(Hash) && data['name'].is_a?(String) && !data['name'].strip.empty? &&
+               data['version'].is_a?(String) && !data['version'].strip.empty?
+          response.status = 400
+          response.body = JSON.generate({ error: 'name and version are required strings' })
+          return
+        end
+        DATA_LOCK.synchronize do
+        if $gems.any? { |gem| gem[:name] == data['name'].strip && gem[:version] == data['version'].strip }
+          response.status = 409
+          response.body = JSON.generate({ error: 'Gem version already exists' })
+          return
+        end
         new_gem = {
           id: ($gems.map { |g| g[:id] }.max || 0) + 1,
-          name: data['name'],
-          version: data['version'],
+          name: data['name'].strip,
+          version: data['version'].strip,
           description: data['description'] || '',
           homepage: data['homepage'] || '',
           license: data['license'] || 'MIT',
@@ -176,28 +211,20 @@ class APIServer < WEBrick::HTTPServlet::AbstractServlet
           created_at: Time.now.iso8601,
           updated_at: Time.now.iso8601
         }
-        $gems << new_gem
+        records = $gems + [new_gem]
+        persist_gems(records)
+        $gems = records
         
         response.status = 201
         response.body = JSON.generate({ gem: new_gem })
+        end
       rescue JSON::ParserError
         response.status = 400
         response.body = JSON.generate({ error: 'Invalid JSON' })
       end
     when '/scan'
-      begin
-        data = JSON.parse(request.body)
-        response.status = 200
-        response.body = JSON.generate({
-          gem_name: data['gem_name'],
-          scan_status: 'completed',
-          vulnerabilities: [],
-          scan_timestamp: Time.now.iso8601
-        })
-      rescue JSON::ParserError
-        response.status = 400
-        response.body = JSON.generate({ error: 'Invalid JSON' })
-      end
+      response.status = 501
+      response.body = JSON.generate({ error: 'Security scanner is not configured; no vulnerability result is available' })
     else
       response.status = 404
       response.body = JSON.generate({ error: 'Not found' })
@@ -207,7 +234,8 @@ end
 
 # Start the server
 server = WEBrick::HTTPServer.new(
-  Port: 4567,
+  Port: Integer(ENV.fetch('PORT', '4567')),
+  BindAddress: ENV.fetch('BIND_ADDRESS', '127.0.0.1'),
   DocumentRoot: '.',
   Logger: WEBrick::Log.new($stderr, WEBrick::Log::INFO),
   AccessLog: []
@@ -222,7 +250,7 @@ trap('TERM') { server.shutdown }
 puts "🚀 GemHub API Server starting on http://localhost:4567"
 puts "📚 API Documentation: http://localhost:4567/docs"
 puts "💚 Health Check: http://localhost:4567/health"
-puts "🔑 API Token: #{ENV['API_TOKEN'] || 'test-token'}"
+puts "🔑 Bearer token configured (value omitted)"
 puts ""
 puts "Press Ctrl+C to stop the server"
 

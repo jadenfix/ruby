@@ -1,0 +1,15 @@
+name: Ruby API HTTP persistence
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  http:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+      - run: gem install webrick --no-document
+      - run: ruby -c services/api/simple_server.rb
+      - run: python3 scripts/check_api_http.py
