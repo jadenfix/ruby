@@ -79,4 +79,6 @@ jspm_packages/
 .yarn-integrity
 
 # dotenv environment variables file
-.env 
+.env
+# Local API persistence
+services/api/data/
