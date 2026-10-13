@@ -9,7 +9,7 @@ import {
   EyeIcon,
   CalendarIcon,
 } from '@heroicons/react/24/outline';
-import apiClient, { apiKeys, formatDownloads, formatRating, formatDate } from '../api/client';
+import apiClient, { apiKeys, formatDownloads, formatRating } from '../api/client';
 import { Gem } from '../types';
 
 function Dashboard() {
