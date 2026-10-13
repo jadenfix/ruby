@@ -12,4 +12,5 @@ jobs:
           ruby-version: '3.3'
       - run: gem install webrick --no-document
       - run: ruby -c services/api/simple_server.rb
+      - run: ruby scripts/check_gem_package.rb
       - run: python3 scripts/check_api_http.py
